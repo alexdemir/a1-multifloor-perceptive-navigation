@@ -24,25 +24,6 @@ Autonomous 3-story navigation stack for the **Unitree A1** quadruped in **ROS 2 
 
 ---
 
-## System Architecture
-
-```mermaid
-flowchart LR
-    GZ["Gazebo Classic<br/>(A1 + Ouster OS1-32 + 100 Hz IMU)"] -->|/ouster/points, /imu/data| DLIO["DLIO Odometry<br/>(/dlio/odom_node/odom)"]
-    GZ -->|/ouster/points| EM["2.5D Elevation Map Node<br/>(5m x 5m @ 5 cm rolling grid)"]
-    DLIO --> EM
-    GZ -->|/imu/data| EM
-    EM -->|/elevation_map/height_scan<br/>17x11 @ 50 Hz| RL["Perceptive PPO RL Controller<br/>(235-dim obs @ 50 Hz sim-time)"]
-
-    GUI["Multi-Floor Goal GUI<br/>(floor_goal_gui.py)"] -->|/multi_floor_goal| FM["Topological Floor Manager<br/>(Dijkstra + Map Switcher)"]
-    FM -->|Nav2 Action| NAV2["Nav2 Stack<br/>(2D Floor Maps + 3D Costmap)"]
-    NAV2 -->|/cmd_vel| RL
-    FM -->|Connector Mode<br/>Ramp / Stairs| RL
-    RL -->|/joint_group_position_controller| GZ
-```
-
----
-
 ## Key Features
 
 - **3-Story Topological Navigation (`floor_manager_node.py`, `building_topology.yaml`):**
