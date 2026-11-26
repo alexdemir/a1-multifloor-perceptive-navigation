@@ -24,20 +24,27 @@ Autonomous 3-story navigation stack for the **Unitree A1** quadruped in **ROS 2 
 
 ---
 
-## Key Features
+## How It Works
 
-- **3-Story Topological Navigation (`floor_manager_node.py`, `building_topology.yaml`):**
-  - Plans optimal multi-floor routes via **Dijkstra** across 3 floors (`z = 0.0 m`, `1.50 m`, `3.00 m`).
-  - Automatically switches Nav2 `map_server` floor maps, aligns yaw/centerline before connectors, and hands off between Nav2 and deterministic corridor tracking on ramps/stairs.
-- **Live 2.5D Rolling Elevation Mapping (`elevation_map_node.py`):**
-  - Fuses `/ouster/points` (10 Hz) with DLIO odometry and gravity-aligned IMU roll/pitch into a `5.0 m × 5.0 m` (`0.05 m` resolution) rolling height grid in `odom` frame.
-  - Bridges the Ouster `-22.5°` blind cone beneath the robot so stairs and ramps scanned `1–2 m` ahead remain memorized directly under the feet, publishing a `17 × 11` (`187`-dim) `height_scan` at **50 Hz**.
-- **Gazebo-Matched Perceptive PPO RL (`rl_locomotion_controller.py`, `a1_policy_rough.npz`):**
-  - Trained in NVIDIA Isaac Gym (`kp = 40.0`, `kd = 0.8` matched to Gazebo `damping=0.5 + pos_kd=0.3`), with stair-climbing rewards (`stumble`, `collision`, `base_height`, `orientation`, `feet_air_time`) and `235`-dim perceptive observations (`48` proprioceptive + `187` `height_scan`).
-  - Deterministically stepped at **50 Hz sim time** driven by `/joint_states` timestamps (zero ROS timer jitter).
-- **Dynamic Social-Yielding Actors & Interactive Goal GUI (`floor_goal_gui.py`):**
-  - Dynamic human actors patrol each floor while Nav2 `ObstacleLayer` (`max_obstacle_height: 6.0`) marks obstacles across all 3 floors.
-  - Tkinter GUI (`floor_goal_gui.py`) previews each floor's 2D map, highlights forbidden ramp/stair zones, shows live robot position, and validates clicked goals against walls/connectors.
+### 1. Perceptive PPO Training (Isaac Gym → Gazebo)
+- **Base Framework:** Built on ETH Zurich / NVIDIA **`legged_gym`** (`rsl_rl` PPO) with an asymmetric-terrain curriculum (`30%` smooth/rough slopes, `70%` up/down stairs).
+- **Sim-to-Sim Physics Matching (`a1_config.py`):** Joint PD gains (`kp = 40.0`, `kd = 0.8`) are matched 1:1 to Gazebo (`URDF damping = 0.5 + pos_kd = 0.3 = 0.8`), with `self_collisions = 0` enabled and domain randomization over friction (`[0.5, 1.5]`), base mass (`[-0.5, +1.5] kg` covering the Ouster OS1-32 payload), and random velocity pushes.
+- **Stair-Climbing Reward Shaping:** In addition to velocity tracking, the policy is trained with explicit stair-clearance terms: `stumble = -1.5` (penalizes foot impacts on vertical risers), `collision = -2.5` (penalizes thigh/calf scraping), `base_height = -1.0` (`0.32 m` target), `orientation = -0.5`, and A1-calibrated `feet_air_time = 1.5` (`0.25 s` swing target).
+- **Deployment:** The trained actor MLP (`235 → 512 → 256 → 128 → 12`, ELU) is exported to `config/a1_policy_rough.npz` for dependency-free NumPy inference in ROS 2.
+
+### 2. Live 2.5D Rolling Elevation Map (`elevation_map_node.py`)
+- **Blind-Cone Problem:** Mounted at `z ≈ 0.41 m` with a `-22.5°` minimum vertical FOV, the Ouster OS1-32 cannot see a `~1.0 m` radius directly beneath the robot—yet the RL policy's `17 × 11` (`187`-dim) `height_scan` grid (`x ∈ [-0.8, +0.8] m`, `y ∈ [-0.5, +0.5] m`) lies inside this blind cone.
+- **Odometry-Fused Rolling Grid:** `/ouster/points` (10 Hz) is transformed into the `odom` frame using `/dlio/odom_node/odom` pose/yaw and gravity-aligned `/imu/data` roll/pitch, then fused via EMA (`α = 0.45`) into an integer-shifted (`np.roll`) `5.0 m × 5.0 m` (`0.05 m` resolution) 2.5D grid. Vertical walls/actors (`cell_dz > 0.24 m`) are rejected so stairs/ramps scanned `1–2 m` ahead remain memorized directly beneath the robot's feet, publishing `height_scan` at **50 Hz**.
+
+### 3. Deterministic 50 Hz RL Locomotion (`rl_locomotion_controller.py`)
+- Driven directly by `/joint_states` `header.stamp` (`20 ms` sim-time steps) to eliminate ROS timer jitter.
+- Assembles the `235`-dim observation vector (`base_lin_vel`, `base_ang_vel`, `projected_gravity`, `cmd_vel`, `dof_pos`, `dof_vel`, `last_action`, `height_scan`) and outputs joint position targets to `ros2_control` (`500 Hz` `joint_group_position_controller`), smoothly blending into a slope-adapted Hill-Hold stance when stationary.
+
+### 4. Topological Multi-Floor Navigation (`floor_manager_node.py`)
+- **Graph Routing & Goal Validation:** Floors (`z = 0.0, 1.50, 3.00 m`) and connectors (`ramp_1_2`: 14° ramp, `ramp_2_3`: 15-step `10×40 cm` staircase) are modeled in `building_topology.yaml`. `floor_goal_gui.py` and `floor_manager_node.py` validate goals against walls/connectors and compute the shortest floor sequence via **Dijkstra**.
+- **Hybrid Nav2 + Connector Execution:**
+  - **On flat floors:** **Nav2** navigates using the active floor's 2D occupancy map and 3D `ObstacleLayer` (`max_obstacle_height: 6.0`), avoiding dynamic patrolling human actors.
+  - **On ramps & stairs:** At the connector handoff point, `floor_manager_node.py` aligns yaw and centerline, switches `map_server` to the target floor, and executes `_traverse_ramp_sync` (straight IMU yaw lock + gentle `linear.y` lateral centering) before handing control back to Nav2.
 
 ---
 
