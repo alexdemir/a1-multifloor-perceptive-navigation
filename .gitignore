@@ -1,0 +1,17 @@
+# ROS 2 workspace artifacts
+build/
+install/
+log/
+
+# Large rosbags & backups
+multi_floor_bag/
+backups/
+*.bag
+*.db3
+
+# IDE & Python caches
+.vscode/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.DS_Store

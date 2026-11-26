@@ -1,0 +1,582 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="multi_floor_world">
+    <!-- Directional Sun Light -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>10 10 15 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Ground Plane -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>1.0</mu>
+                <mu2>1.0</mu2>
+              </ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.6 0.6 0.6 1</ambient>
+            <diffuse>0.6 0.6 0.6 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Physics Engine Parameters -->
+    <physics type="ode">
+      <max_step_size>0.002</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>500</real_time_update_rate>
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>50</iters>
+          <sor>1.3</sor>
+        </solver>
+        <constraints>
+          <cfm>0.00001</cfm>
+          <erp>0.2</erp>
+          <contact_max_correcting_vel>0.2</contact_max_correcting_vel>
+          <contact_surface_layer>0.001</contact_surface_layer>
+        </constraints>
+      </ode>
+    </physics>
+
+    <!-- Gazebo ROS State Plugin (Publishes /gazebo/model_states and provides /gazebo/set_entity_state) -->
+    <plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+      <ros>
+        <namespace>/gazebo</namespace>
+      </ros>
+      <update_rate>50.0</update_rate>
+    </plugin>
+
+    <!-- THREE-STORY BUILDING AND TWO ENCLOSED RAMPS -->
+    <model name="multi_level_building">
+      <static>true</static>
+
+      <!-- 1. Outer Building Walls (5.5m height enclosing Floor 1, Floor 2, and Floor 3) -->
+      <link name="ground_floor_walls">
+        <collision name="wall_outer_north">
+          <pose>0 6 2.75 0 0 0</pose>
+          <geometry><box><size>14 0.2 5.5</size></box></geometry>
+        </collision>
+        <visual name="wall_outer_north_vis">
+          <pose>0 6 2.75 0 0 0</pose>
+          <geometry><box><size>14 0.2 5.5</size></box></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient></material>
+        </visual>
+
+        <collision name="wall_outer_south">
+          <pose>0 -6 2.75 0 0 0</pose>
+          <geometry><box><size>14 0.2 5.5</size></box></geometry>
+        </collision>
+        <visual name="wall_outer_south_vis">
+          <pose>0 -6 2.75 0 0 0</pose>
+          <geometry><box><size>14 0.2 5.5</size></box></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient></material>
+        </visual>
+
+        <collision name="wall_outer_west">
+          <pose>-7 0 2.75 0 0 0</pose>
+          <geometry><box><size>0.2 12.2 5.5</size></box></geometry>
+        </collision>
+        <visual name="wall_outer_west_vis">
+          <pose>-7 0 2.75 0 0 0</pose>
+          <geometry><box><size>0.2 12.2 5.5</size></box></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient></material>
+        </visual>
+
+        <collision name="wall_outer_east">
+          <pose>7 0 2.75 0 0 0</pose>
+          <geometry><box><size>0.2 12.2 5.5</size></box></geometry>
+        </collision>
+        <visual name="wall_outer_east_vis">
+          <pose>7 0 2.75 0 0 0</pose>
+          <geometry><box><size>0.2 12.2 5.5</size></box></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient></material>
+        </visual>
+
+        <!-- First Floor Interior Room Divider (z=0..1.4m, clears Ramp 2->3 above) -->
+        <collision name="room_divider_1">
+          <pose>-2.5 0.9 0.70 0 0 0</pose>
+          <geometry><box><size>0.2 2.8 1.4</size></box></geometry>
+        </collision>
+        <visual name="room_divider_1_vis">
+          <pose>-2.5 0.9 0.70 0 0 0</pose>
+          <geometry><box><size>0.2 2.8 1.4</size></box></geometry>
+          <material><ambient>0.7 0.7 0.9 1</ambient></material>
+        </visual>
+      </link>
+
+      <!-- 2. Second Floor Platform (Top surface at z = 1.50m, x = [0.5, 6.9]) -->
+      <link name="second_floor_platform">
+        <collision name="platform_collision">
+          <pose>3.7 0 1.43 0 0 0</pose>
+          <geometry><box><size>6.4 11.8 0.14</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.2</mu><mu2>1.2</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="platform_visual">
+          <pose>3.7 0 1.43 0 0 0</pose>
+          <geometry><box><size>6.4 11.8 0.14</size></box></geometry>
+          <material><ambient>0.6 0.6 0.65 1</ambient></material>
+        </visual>
+
+        <!-- Second Floor Balcony Guard Wall (Middle Section: y in [-2.70, +2.70]) -->
+        <collision name="balcony_guard_mid">
+          <pose>0.50 0.0 1.95 0 0 0</pose>
+          <geometry><box><size>0.15 5.40 0.90</size></box></geometry>
+        </collision>
+        <visual name="balcony_guard_mid_vis">
+          <pose>0.50 0.0 1.95 0 0 0</pose>
+          <geometry><box><size>0.15 5.40 0.90</size></box></geometry>
+          <material><ambient>0.85 0.55 0.25 1</ambient></material>
+        </visual>
+
+        <!-- Second Floor Balcony Guard Wall (North Section: y in [+4.90, +6.00]) -->
+        <collision name="balcony_guard_north">
+          <pose>0.50 5.45 1.95 0 0 0</pose>
+          <geometry><box><size>0.15 1.10 0.90</size></box></geometry>
+        </collision>
+        <visual name="balcony_guard_north_vis">
+          <pose>0.50 5.45 1.95 0 0 0</pose>
+          <geometry><box><size>0.15 1.10 0.90</size></box></geometry>
+          <material><ambient>0.85 0.55 0.25 1</ambient></material>
+        </visual>
+
+        <!-- Second Floor Balcony Guard Wall (South Section: y in [-6.00, -4.90]) -->
+        <collision name="balcony_guard_south">
+          <pose>0.50 -5.45 1.95 0 0 0</pose>
+          <geometry><box><size>0.15 1.10 0.90</size></box></geometry>
+        </collision>
+        <visual name="balcony_guard_south_vis">
+          <pose>0.50 -5.45 1.95 0 0 0</pose>
+          <geometry><box><size>0.15 1.10 0.90</size></box></geometry>
+          <material><ambient>0.85 0.55 0.25 1</ambient></material>
+        </visual>
+
+        <!-- Second Floor Interior Room Divider (y in [-2.30, +2.30]) -->
+        <collision name="second_floor_divider">
+          <pose>3.7 0.0 2.25 0 0 0</pose>
+          <geometry><box><size>0.2 4.6 1.5</size></box></geometry>
+        </collision>
+        <visual name="second_floor_divider_vis">
+          <pose>3.7 0.0 2.25 0 0 0</pose>
+          <geometry><box><size>0.2 4.6 1.5</size></box></geometry>
+          <material><ambient>0.7 0.85 0.7 1</ambient></material>
+        </visual>
+      </link>
+
+      <!-- 3. Ramp 1 -> 2 (Bottom: x=-5.5, z=0.0 -> Top: x=+0.5, z=1.50, y=-3.80, Slope: 14 deg) -->
+      <link name="ramp_to_second_floor">
+        <collision name="ramp_collision">
+          <pose>-2.50 -3.80 0.70 0 -0.245 0</pose>
+          <geometry><box><size>6.25 2.20 0.10</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="ramp_visual">
+          <pose>-2.50 -3.80 0.70 0 -0.245 0</pose>
+          <geometry><box><size>6.25 2.20 0.10</size></box></geometry>
+          <material><ambient>0.3 0.65 0.35 1</ambient></material>
+        </visual>
+
+        <collision name="ramp_guard_left">
+          <pose>-2.50 -2.70 1.15 0 -0.245 0</pose>
+          <geometry><box><size>6.20 0.15 0.90</size></box></geometry>
+        </collision>
+        <visual name="ramp_guard_left_vis">
+          <pose>-2.50 -2.70 1.15 0 -0.245 0</pose>
+          <geometry><box><size>6.20 0.15 0.90</size></box></geometry>
+          <material><ambient>0.85 0.55 0.25 1</ambient></material>
+        </visual>
+
+        <collision name="ramp_guard_right">
+          <pose>-2.50 -4.90 1.15 0 -0.245 0</pose>
+          <geometry><box><size>6.20 0.15 0.90</size></box></geometry>
+        </collision>
+        <visual name="ramp_guard_right_vis">
+          <pose>-2.50 -4.90 1.15 0 -0.245 0</pose>
+          <geometry><box><size>6.20 0.15 0.90</size></box></geometry>
+          <material><ambient>0.85 0.55 0.25 1</ambient></material>
+        </visual>
+
+        <collision name="ramp_under_wall">
+          <pose>-2.50 -2.70 0.55 0 0 0</pose>
+          <geometry><box><size>6.00 0.15 1.10</size></box></geometry>
+        </collision>
+        <visual name="ramp_under_wall_vis">
+          <pose>-2.50 -2.70 0.55 0 0 0</pose>
+          <geometry><box><size>6.00 0.15 1.10</size></box></geometry>
+          <material><ambient>0.75 0.75 0.75 1</ambient></material>
+        </visual>
+      </link>
+
+      <!-- 4. Ramp 2 -> 3 (Bottom: x=+1.5, z=1.50 -> Top: x=-4.5, z=3.00, y=+3.80, Slope: 14 deg) -->
+      <link name="ramp_to_third_floor">
+        <!-- Stair Step 1/15 (x=1.30, z_top=1.60m) -->
+        <collision name="stair23_col_1">
+          <pose>1.30 3.80 1.550 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.100</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_1">
+          <pose>1.30 3.80 1.550 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.100</size></box></geometry>
+          <material><ambient>0.30 0.56 0.78 1</ambient></material>
+        </visual>
+        <!-- Stair Step 2/15 (x=0.90, z_top=1.70m) -->
+        <collision name="stair23_col_2">
+          <pose>0.90 3.80 1.600 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.200</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_2">
+          <pose>0.90 3.80 1.600 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.200</size></box></geometry>
+          <material><ambient>0.23 0.47 0.69 1</ambient></material>
+        </visual>
+        <!-- Stair Step 3/15 (x=0.50, z_top=1.80m) -->
+        <collision name="stair23_col_3">
+          <pose>0.50 3.80 1.650 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.300</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_3">
+          <pose>0.50 3.80 1.650 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.300</size></box></geometry>
+          <material><ambient>0.30 0.56 0.78 1</ambient></material>
+        </visual>
+        <!-- Stair Step 4/15 (x=0.10, z_top=1.90m) -->
+        <collision name="stair23_col_4">
+          <pose>0.10 3.80 1.700 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.400</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_4">
+          <pose>0.10 3.80 1.700 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.400</size></box></geometry>
+          <material><ambient>0.23 0.47 0.69 1</ambient></material>
+        </visual>
+        <!-- Stair Step 5/15 (x=-0.30, z_top=2.00m) -->
+        <collision name="stair23_col_5">
+          <pose>-0.30 3.80 1.750 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.500</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_5">
+          <pose>-0.30 3.80 1.750 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.500</size></box></geometry>
+          <material><ambient>0.30 0.56 0.78 1</ambient></material>
+        </visual>
+        <!-- Stair Step 6/15 (x=-0.70, z_top=2.10m) -->
+        <collision name="stair23_col_6">
+          <pose>-0.70 3.80 1.800 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.600</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_6">
+          <pose>-0.70 3.80 1.800 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.600</size></box></geometry>
+          <material><ambient>0.23 0.47 0.69 1</ambient></material>
+        </visual>
+        <!-- Stair Step 7/15 (x=-1.10, z_top=2.20m) -->
+        <collision name="stair23_col_7">
+          <pose>-1.10 3.80 1.850 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.700</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_7">
+          <pose>-1.10 3.80 1.850 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.700</size></box></geometry>
+          <material><ambient>0.30 0.56 0.78 1</ambient></material>
+        </visual>
+        <!-- Stair Step 8/15 (x=-1.50, z_top=2.30m) -->
+        <collision name="stair23_col_8">
+          <pose>-1.50 3.80 1.900 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.800</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_8">
+          <pose>-1.50 3.80 1.900 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.800</size></box></geometry>
+          <material><ambient>0.23 0.47 0.69 1</ambient></material>
+        </visual>
+        <!-- Stair Step 9/15 (x=-1.90, z_top=2.40m) -->
+        <collision name="stair23_col_9">
+          <pose>-1.90 3.80 1.950 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.900</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_9">
+          <pose>-1.90 3.80 1.950 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 0.900</size></box></geometry>
+          <material><ambient>0.30 0.56 0.78 1</ambient></material>
+        </visual>
+        <!-- Stair Step 10/15 (x=-2.30, z_top=2.50m) -->
+        <collision name="stair23_col_10">
+          <pose>-2.30 3.80 2.000 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.000</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_10">
+          <pose>-2.30 3.80 2.000 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.000</size></box></geometry>
+          <material><ambient>0.23 0.47 0.69 1</ambient></material>
+        </visual>
+        <!-- Stair Step 11/15 (x=-2.70, z_top=2.60m) -->
+        <collision name="stair23_col_11">
+          <pose>-2.70 3.80 2.050 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.100</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_11">
+          <pose>-2.70 3.80 2.050 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.100</size></box></geometry>
+          <material><ambient>0.30 0.56 0.78 1</ambient></material>
+        </visual>
+        <!-- Stair Step 12/15 (x=-3.10, z_top=2.70m) -->
+        <collision name="stair23_col_12">
+          <pose>-3.10 3.80 2.100 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.200</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_12">
+          <pose>-3.10 3.80 2.100 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.200</size></box></geometry>
+          <material><ambient>0.23 0.47 0.69 1</ambient></material>
+        </visual>
+        <!-- Stair Step 13/15 (x=-3.50, z_top=2.80m) -->
+        <collision name="stair23_col_13">
+          <pose>-3.50 3.80 2.150 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.300</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_13">
+          <pose>-3.50 3.80 2.150 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.300</size></box></geometry>
+          <material><ambient>0.30 0.56 0.78 1</ambient></material>
+        </visual>
+        <!-- Stair Step 14/15 (x=-3.90, z_top=2.90m) -->
+        <collision name="stair23_col_14">
+          <pose>-3.90 3.80 2.200 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.400</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_14">
+          <pose>-3.90 3.80 2.200 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.400</size></box></geometry>
+          <material><ambient>0.23 0.47 0.69 1</ambient></material>
+        </visual>
+        <!-- Stair Step 15/15 (x=-4.30, z_top=3.00m) -->
+        <collision name="stair23_col_15">
+          <pose>-4.30 3.80 2.250 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.500</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.5</mu><mu2>1.5</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="stair23_vis_15">
+          <pose>-4.30 3.80 2.250 0 0 0</pose>
+          <geometry><box><size>0.40 2.20 1.500</size></box></geometry>
+          <material><ambient>0.30 0.56 0.78 1</ambient></material>
+        </visual>
+
+        <!-- Ramp 2->3 South Guard Wall -->
+        <collision name="ramp23_guard_south">
+          <pose>-1.50 2.70 2.65 0 0.245 0</pose>
+          <geometry><box><size>6.20 0.15 0.90</size></box></geometry>
+        </collision>
+        <visual name="ramp23_guard_south_vis">
+          <pose>-1.50 2.70 2.65 0 0.245 0</pose>
+          <geometry><box><size>6.20 0.15 0.90</size></box></geometry>
+          <material><ambient>0.85 0.55 0.25 1</ambient></material>
+        </visual>
+
+        <!-- Ramp 2->3 North Guard Wall -->
+        <collision name="ramp23_guard_north">
+          <pose>-1.50 4.90 2.65 0 0.245 0</pose>
+          <geometry><box><size>6.20 0.15 0.90</size></box></geometry>
+        </collision>
+        <visual name="ramp23_guard_north_vis">
+          <pose>-1.50 4.90 2.65 0 0.245 0</pose>
+          <geometry><box><size>6.20 0.15 0.90</size></box></geometry>
+          <material><ambient>0.85 0.55 0.25 1</ambient></material>
+        </visual>
+      </link>
+
+      <!-- 5. Third Floor Platform (Top surface at z = 3.00m, West Deck + Ramp Arrival Landing) -->
+      <link name="third_floor_platform">
+        <!-- Main West Deck: x in [-6.90, -0.50], y in [-5.90, +2.70] -->
+        <collision name="f3_main_collision">
+          <pose>-3.70 -1.60 2.93 0 0 0</pose>
+          <geometry><box><size>6.40 8.60 0.14</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.2</mu><mu2>1.2</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="f3_main_visual">
+          <pose>-3.70 -1.60 2.93 0 0 0</pose>
+          <geometry><box><size>6.40 8.60 0.14</size></box></geometry>
+          <material><ambient>0.55 0.58 0.68 1</ambient></material>
+        </visual>
+
+        <!-- Ramp Arrival Deck: x in [-6.90, -4.50], y in [+2.70, +5.90] (2.4m wide landing) -->
+        <collision name="f3_landing_collision">
+          <pose>-5.70 4.30 2.93 0 0 0</pose>
+          <geometry><box><size>2.40 3.20 0.14</size></box></geometry>
+          <surface>
+            <friction>
+              <ode><mu>1.2</mu><mu2>1.2</mu2></ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="f3_landing_visual">
+          <pose>-5.70 4.30 2.93 0 0 0</pose>
+          <geometry><box><size>2.40 3.20 0.14</size></box></geometry>
+          <material><ambient>0.55 0.58 0.68 1</ambient></material>
+        </visual>
+
+        <!-- Third Floor East Balcony Guard Wall (x = -0.50, y in [-5.90, +2.70]) -->
+        <collision name="f3_guard_east">
+          <pose>-0.50 -1.60 3.45 0 0 0</pose>
+          <geometry><box><size>0.15 8.60 0.90</size></box></geometry>
+        </collision>
+        <visual name="f3_guard_east_vis">
+          <pose>-0.50 -1.60 3.45 0 0 0</pose>
+          <geometry><box><size>0.15 8.60 0.90</size></box></geometry>
+          <material><ambient>0.85 0.55 0.25 1</ambient></material>
+        </visual>
+
+        <!-- Third Floor North Balcony Guard Wall (y = +2.70, x in [-4.50, -0.50]) -->
+        <collision name="f3_guard_north">
+          <pose>-2.50 2.70 3.45 0 0 0</pose>
+          <geometry><box><size>4.00 0.15 0.90</size></box></geometry>
+        </collision>
+        <visual name="f3_guard_north_vis">
+          <pose>-2.50 2.70 3.45 0 0 0</pose>
+          <geometry><box><size>4.00 0.15 0.90</size></box></geometry>
+          <material><ambient>0.85 0.55 0.25 1</ambient></material>
+        </visual>
+
+        <!-- Third Floor Landing North-East Guard (x = -4.50, y in [+4.90, +5.90]) -->
+        <collision name="f3_guard_landing_ne">
+          <pose>-4.50 5.40 3.45 0 0 0</pose>
+          <geometry><box><size>0.15 1.00 0.90</size></box></geometry>
+        </collision>
+        <visual name="f3_guard_landing_ne_vis">
+          <pose>-4.50 5.40 3.45 0 0 0</pose>
+          <geometry><box><size>0.15 1.00 0.90</size></box></geometry>
+          <material><ambient>0.85 0.55 0.25 1</ambient></material>
+        </visual>
+
+        <!-- Third Floor Interior Room Divider (x = -3.70, y in [-3.90, +0.30]) -->
+        <collision name="third_floor_divider">
+          <pose>-3.70 -1.80 3.75 0 0 0</pose>
+          <geometry><box><size>0.20 4.20 1.50</size></box></geometry>
+        </collision>
+        <visual name="third_floor_divider_vis">
+          <pose>-3.70 -1.80 3.75 0 0 0</pose>
+          <geometry><box><size>0.20 4.20 1.50</size></box></geometry>
+          <material><ambient>0.85 0.7 0.85 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>

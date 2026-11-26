@@ -1,0 +1,41 @@
+# Hierarchical Multi-Floor Building Topology Graph (G = (V, E))
+# Used by floor_manager_node.py for N-floor Z tracking and Dijkstra cross-floor routing.
+
+floors:
+  floor1:
+    id: 1
+    map: "floor1_map.yaml"
+    z_center: 0.0
+  floor2:
+    id: 2
+    map: "floor2_map.yaml"
+    z_center: 1.5
+  floor3:
+    id: 3
+    map: "floor3_map.yaml"
+    z_center: 3.0
+
+# Bidirectional connectors (ramps) linking adjacent floors.
+# Each ramp belongs to its upper_floor's 2D occupancy map (shared overlap at bottom_xy):
+#   - Ascending  (lower -> upper): drive to bottom_xy on lower map -> load upper map -> climb ramp
+#   - Descending (upper -> lower): descend ramp on upper map to bottom_xy -> load lower map -> continue
+connectors:
+  - name: "ramp_1_2"
+    lower_floor: "floor1"
+    upper_floor: "floor2"
+    bottom_xy: [-6.45, -3.80]
+    top_xy: [1.20, -3.80]
+    handoff_radius: 0.35
+    yaw_up: 0.0
+    yaw_down: 3.14159
+    cost: 10.0
+
+  - name: "ramp_2_3"
+    lower_floor: "floor2"
+    upper_floor: "floor3"
+    bottom_xy: [2.55, 3.80]
+    top_xy: [-5.30, 3.80]
+    handoff_radius: 0.35
+    yaw_up: 3.14159
+    yaw_down: 0.0
+    cost: 10.0
