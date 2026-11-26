@@ -107,4 +107,3 @@ docker compose up --build
 ## Acknowledgments
 - **[legged_gym](https://github.com/leggedrobotics/legged_gym)** (ETH Zurich / NVIDIA) — Perceptive PPO locomotion training framework.
 - **[DLIO](https://github.com/vectr-ucla/direct_lidar_inertial_odometry)** (UCLA VECTR Lab) — Direct LiDAR-Inertial Odometry.
-- **[Nav2](https://navigation.ros.org/)** — ROS 2 autonomous navigation stack.
