@@ -92,9 +92,19 @@ source install/setup.bash
 ros2 launch a1_description navigation.launch.py
 ```
 
-This launches:
-1. **Gazebo Classic** with the 3-story building (`multi_floor_building.world`) and dynamic actors
-2. **DLIO** (`/dlio/odom_node/odom`) & **2.5D Elevation Map** (`/elevation_map/height_scan`, `/elevation_map/cloud`)
-3. **50 Hz Perceptive RL Controller** (`rl_locomotion_controller.py`)
-4. **Nav2 + Multi-Floor Manager** (`floor_manager_node.py`)
-5. **RViz2** & **Multi-Floor Goal GUI** (`floor_goal_gui.py`)
+### 3. Run with Docker (OS-Independent)
+```bash
+# Allow X11 forwarding for Gazebo, RViz2, and Multi-Floor Goal GUI
+xhost +local:docker
+
+# Build and launch the full stack
+docker compose up --build
+```
+*(If running without hardware OpenGL/GPU acceleration, launch with `LIBGL_ALWAYS_SOFTWARE=1 docker compose up`.)*
+
+---
+
+## Acknowledgments
+- **[legged_gym](https://github.com/leggedrobotics/legged_gym)** (ETH Zurich / NVIDIA) — Perceptive PPO locomotion training framework.
+- **[DLIO](https://github.com/vectr-ucla/direct_lidar_inertial_odometry)** (UCLA VECTR Lab) — Direct LiDAR-Inertial Odometry.
+- **[Nav2](https://navigation.ros.org/)** — ROS 2 autonomous navigation stack.

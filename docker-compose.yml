@@ -1,0 +1,16 @@
+services:
+  a1_nav:
+    build: .
+    container_name: a1_multifloor_nav
+    network_mode: host
+    ipc: host
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - LIBGL_ALWAYS_SOFTWARE=${LIBGL_ALWAYS_SOFTWARE:-0}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    devices:
+      - /dev/dri:/dev/dri
+    stdin_open: true
+    tty: true
