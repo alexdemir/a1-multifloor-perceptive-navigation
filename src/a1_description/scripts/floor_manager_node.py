@@ -476,7 +476,11 @@ class FloorManagerNode(Node):
 
         t0 = time.monotonic()
         reached = False
+        best_progress = -1e9
+        last_progress_t = t0
+        recover_until = 0.0
         while rclpy.ok() and (time.monotonic() - t0) < timeout_sec:
+            now = time.monotonic()
             rx = self.current_x - sx
             ry = self.current_y - sy
             progress = rx * tx + ry * ty
@@ -486,32 +490,48 @@ class FloorManagerNode(Node):
                 reached = True
                 break
 
+            if progress > (best_progress + 0.08):
+                best_progress = progress
+                last_progress_t = now
+
+            if now >= recover_until and (now - last_progress_t) >= 3.5:
+                recover_until = now + 0.75
+                last_progress_t = recover_until
+                best_progress = progress - 0.10
+                self.get_logger().warn(
+                    f'Ramp Mode STALL at progress={progress:.2f}/{ramp_len:.2f}m (cte={cte:+.2f}m) '
+                    f'— backing up 0.75s to unhook legs.'
+                )
+
             yaw_err = math.atan2(
                 math.sin(target_yaw - self.current_yaw),
                 math.cos(target_yaw - self.current_yaw),
             )
 
             cmd = Twist()
-            cmd.linear.x = float(fwd_speed)
-            cmd.linear.y = 0.0
-            if not is_uphill:
-                # Descent centerline tracking: keep body nearly parallel (<= 8 deg offset)
-                if abs(yaw_err) <= 0.05 and abs(cte) <= 0.12:
+            if now < recover_until:
+                cmd.linear.x = -0.30 if is_uphill else -0.25
+                cmd.linear.y = float(max(-0.18, min(0.18, -0.55 * cte)))
+                cmd.angular.z = float(max(-0.35, min(0.35, 1.50 * yaw_err)))
+            elif not is_uphill:
+                # Straight-body descent: keep aligned to target_yaw and gently strafe with linear.y
+                cmd.linear.x = float(fwd_speed)
+                if abs(yaw_err) <= 0.05 and abs(cte) <= 0.08:
+                    cmd.linear.y = 0.0
                     cmd.angular.z = 0.0
                 else:
-                    desired_yaw = target_yaw - max(-0.20, min(0.20, 0.50 * cte))
-                    steer_err = math.atan2(
-                        math.sin(desired_yaw - self.current_yaw),
-                        math.cos(desired_yaw - self.current_yaw),
-                    )
-                    if abs(steer_err) > 0.20:
-                        cmd.linear.x = 0.15
-                    cmd.angular.z = float(max(-0.40, min(0.40, 2.20 * steer_err)))
+                    cmd.linear.y = float(max(-0.16, min(0.16, -0.50 * cte)))
+                    if abs(yaw_err) > 0.22:
+                        cmd.linear.x = 0.20
+                    cmd.angular.z = float(max(-0.35, min(0.35, 1.50 * yaw_err)))
             elif abs(yaw_err) <= 0.04 and abs(cte) <= 0.06:
                 # Straight & centered: let rl_locomotion_controller's 50 Hz IMU yaw lock hold straight
+                cmd.linear.x = float(fwd_speed)
+                cmd.linear.y = 0.0
                 cmd.angular.z = 0.0
             else:
                 # Keep body straight on ramps/stairs and strafe gently with linear.y (no yaw twisting)
+                cmd.linear.x = float(fwd_speed)
                 cmd.linear.y = float(max(-0.18, min(0.18, -0.55 * cte)))
                 if abs(yaw_err) > 0.25:
                     cmd.linear.x = 0.38
